@@ -1,0 +1,41 @@
+{
+  "name": "compressmcp",
+  "version": "0.1.0",
+  "description": "Lossless JSON compression for Claude Code — PostToolUse hook + MCP server. Intercepts database, API, and tool results using TerseJSON key abbreviation. Zero data loss.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "compressmcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "claude-code",
+    "hook",
+    "mcp",
+    "json",
+    "compression",
+    "token-optimization",
+    "lossless",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "tersejson": "*"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

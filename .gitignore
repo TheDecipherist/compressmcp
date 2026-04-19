@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+.env.local
+
+# Docs & research (local only)
+docs/
+_ai_temp/
+
+# MDD audits (regenerated)
+.mdd/audits/
+
+# Local Claude instructions
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
