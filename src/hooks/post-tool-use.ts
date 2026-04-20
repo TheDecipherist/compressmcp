@@ -1,6 +1,7 @@
 import { shouldCompress } from '../compress/detect.js';
 import { compress } from '../compress/terse.js';
 import { formatOutput } from '../compress/dictionary.js';
+import { appendEvent } from '../session.js';
 
 export interface ContentBlock {
   type: 'text' | 'image' | 'resource';
@@ -29,6 +30,9 @@ export function processHook(input: HookInput): HookOutput | null {
   }
 
   let anyCompressed = false;
+  let totalTokensIn = 0;
+  let totalTokensSaved = 0;
+
   const updatedBlocks: ContentBlock[] = input.tool_response.map(block => {
     if (block.type !== 'text' || !block.text) {
       return block;
@@ -39,12 +43,21 @@ export function processHook(input: HookInput): HookOutput | null {
     const result = compress(block.text);
     const formatted = formatOutput(result);
     anyCompressed = true;
+    totalTokensIn += result.originalTokens;
+    totalTokensSaved += result.originalTokens - result.compressedTokens;
     return { type: 'text', text: formatted };
   });
 
   if (!anyCompressed) {
     return null;
   }
+
+  appendEvent(input.session_id, {
+    type: 'compress',
+    tokensSaved: totalTokensSaved,
+    tokensIn: totalTokensIn,
+    ts: Date.now(),
+  });
 
   return {
     hookSpecificOutput: {
