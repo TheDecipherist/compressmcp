@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/compressmcp)](https://www.npmjs.com/package/compressmcp) [![GitHub](https://img.shields.io/badge/github-TheDecipherist%2Fcompressmcp-blue)](https://github.com/TheDecipherist/compressmcp)
 
-Lossless JSON compression for Claude Code. Intercepts MCP tool responses and compresses large JSON payloads before they enter Claude's context window — cutting token usage by 40% on average with zero data loss.
+Lossless JSON compression for Claude Code. Intercepts MCP tool responses and compresses large JSON payloads before they enter Claude's context window, cutting token usage by 40% on average with zero data loss.
 
 ---
 
@@ -10,7 +10,7 @@ Lossless JSON compression for Claude Code. Intercepts MCP tool responses and com
 
 Every MCP tool call that returns a database result, API response, or search payload lands verbatim in Claude's context. Verbose JSON field names like `transactionId`, `orderStatus`, and `repositoryDescription` repeat thousands of times across a session, burning tokens on structure rather than content.
 
-compressmcp intercepts those responses and abbreviates the keys using [TerseJSON](https://github.com/tersejson/tersejson). Claude receives a compact dictionary plus the abbreviated data and reads it just as accurately — but at 40% fewer tokens.
+compressmcp intercepts those responses and abbreviates the keys using [TerseJSON](https://github.com/tersejson/tersejson). Claude receives a compact dictionary plus the abbreviated data and reads it just as accurately, but at 40% fewer tokens.
 
 ---
 
@@ -42,7 +42,7 @@ Keys: {"orderId":"a","orderStatus":"b","customerName":"c","totalAmount":"d",...}
 [{"a":"order_001","b":"completed","c":"Customer 1","d":149.99,...},...]
 ```
 
-Claude reads the `Keys` dictionary to decode field names before using the data. The full original structure is recoverable at any time — nothing is dropped, summarised, or truncated.
+Claude reads the `Keys` dictionary to decode field names before using the data. The full original structure is recoverable at any time, nothing is dropped, summarised, or truncated.
 
 ### Compression threshold
 
@@ -107,7 +107,7 @@ Hook processing time measured over 10 runs per dataset. Times include Node.js pr
 
 \* Based on Claude Haiku input throughput (~60k tokens/sec). Positive Net = compression saves more time than it costs.
 
-The ~60ms baseline is process startup — unavoidable for a CLI hook. Break-even is around 3,600 tokens saved. Any response large enough to compress meaningfully (~15KB+) comes out ahead.
+The ~60ms baseline is process startup, unavoidable for a CLI hook. Break-even is around 3,600 tokens saved. Any response large enough to compress meaningfully (~15KB+) comes out ahead.
 
 ---
 
@@ -146,10 +146,10 @@ The command reads live context and rate-limit data piped in by Claude Code, comb
 
 Compression is strictly lossless. The test suite includes:
 
-- **Lossless roundtrip tests** — every compressed payload decompresses back to byte-identical JSON
-- **No-passthrough-corruption tests** — non-JSON content passes through untouched
-- **End-to-end integration tests** — spawns the real compiled binary, pipes actual HookInput JSON, asserts on stdout
-- **Claude comprehension test** — verifies the compressed format (header + dictionary + data) is correctly structured for Claude to decode
+- **Lossless roundtrip tests**, every compressed payload decompresses back to byte-identical JSON
+- **No-passthrough-corruption tests**, non-JSON content passes through untouched
+- **End-to-end integration tests**, spawns the real compiled binary, pipes actual HookInput JSON, asserts on stdout
+- **Claude comprehension test**, verifies the compressed format (header + dictionary + data) is correctly structured for Claude to decode
 
 ```bash
 npm test
