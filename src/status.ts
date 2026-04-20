@@ -50,7 +50,8 @@ export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | nul
   const bar = formatBar(filledCount, BAR_WIDTH);
   const pctStr = pct.toString().padStart(3);
   const savedStr = fmtTokens(stats.tokensSaved);
-  let out = `[${bar}${pctStr}% | ${usedStr}/${windowStr}] ${model} · \u26a1 -${savedStr} tok \u00b7 ${stats.calls} calls`;
+  const comprPct = stats.tokensIn > 0 ? ` \u00b7 ${Math.round((stats.tokensSaved / stats.tokensIn) * 100)}%` : '';
+  let out = `[${bar}${pctStr}% | ${usedStr}/${windowStr}] ${model} · \u26a1 -${savedStr} tok${comprPct} \u00b7 ${stats.calls} calls`;
 
   if (planUsage) {
     out += ` | ${formatPlanUsage(planUsage)}`;

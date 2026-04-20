@@ -437,6 +437,54 @@ describe('formatStatusBar — model display', () => {
 
 const ZERO_STATS: SessionStats = { calls: 0, tokensSaved: 0, tokensIn: 0, context: null };
 
+describe('formatStatusBar — compression percentage', () => {
+  describe('percentage shown between tok and calls', () => {
+    it('shows rounded percentage between savings and call count when tokensIn > 0', () => {
+      const stats: SessionStats = { calls: 10, tokensSaved: 500, tokensIn: 1000, context: null };
+      const plain = stripAnsi(formatStatusBar(stats));
+      // 500/1000 = 50%
+      expect(plain).toContain('50%');
+      expect(plain).toContain('10 calls');
+      expect(plain).toContain('-500 tok');
+    });
+
+    it('percentage appears after "tok" and before "calls" in the output', () => {
+      const stats: SessionStats = { calls: 5, tokensSaved: 300, tokensIn: 1000, context: null };
+      const plain = stripAnsi(formatStatusBar(stats));
+      const tokIdx = plain.indexOf('tok');
+      const pctIdx = plain.indexOf('30%');
+      const callsIdx = plain.indexOf('calls');
+      expect(pctIdx).toBeGreaterThan(tokIdx);
+      expect(pctIdx).toBeLessThan(callsIdx);
+    });
+
+    it('rounds to nearest integer (e.g. 66.7% → 67%)', () => {
+      // 2/3 = 66.666...% → 67%
+      const stats: SessionStats = { calls: 1, tokensSaved: 2, tokensIn: 3, context: null };
+      const plain = stripAnsi(formatStatusBar(stats));
+      expect(plain).toContain('67%');
+      expect(plain).not.toContain('66%');
+    });
+  });
+
+  describe('omit when no data', () => {
+    it('omits percentage section when tokensIn is 0', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS));
+      // Should not contain a lone "%" that isn't the context bar percentage
+      // The context bar uses "%" too, so check the compression section specifically
+      // Pattern: "tok · <N> calls" with no extra "%" between tok and calls
+      expect(plain).toMatch(/tok · \d+ calls/);
+    });
+
+    it('output without tokensIn is identical to previous format (no regression)', () => {
+      const withZero = stripAnsi(formatStatusBar(ZERO_STATS));
+      // Verify no stray percentage injected between tok and calls
+      expect(withZero).not.toMatch(/tok · \d+% · \d+ calls/);
+      expect(withZero).toMatch(/tok · 0 calls/);
+    });
+  });
+});
+
 describe('formatStatusBar — git branch display', () => {
   const planUsage = {
     fiveHour: { utilization: 10, resetsAt: '' },
