@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execSync } from 'child_process';
 import { main as runPostHook } from './hooks/post-tool-use.js';
 import { main as runPreHook } from './hooks/pre-tool-use.js';
 import { runServer } from './server/index.js';
@@ -32,7 +33,8 @@ switch (command) {
 
     // Get compression stats from session JSONL
     const sessionId = live.session_id as string | undefined;
-    const events = sessionId ? readSession(sessionId) : readLatestSession();
+    const sessionEvents = sessionId ? readSession(sessionId) : [];
+    const events = sessionEvents.length > 0 ? sessionEvents : readLatestSession();
     const compression = aggregateSession(events);
 
     // Build SessionStats: use live context window data if available
@@ -67,7 +69,12 @@ switch (command) {
           }
         : await fetchPlanUsage();
 
-    process.stdout.write(formatStatusBar(liveStats, planUsage));
+    let branch: string | null = null;
+    try {
+      branch = execSync('git branch --show-current', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
+    } catch { /* not a git repo or git unavailable */ }
+
+    process.stdout.write(formatStatusBar(liveStats, planUsage, branch));
     break;
   }
   case '--server':
