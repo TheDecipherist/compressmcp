@@ -1,6 +1,6 @@
 {
   "name": "compressmcp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Lossless JSON compression for Claude Code — PostToolUse hook + MCP server. Intercepts database, API, and tool results using TerseJSON key abbreviation. Zero data loss.",
   "type": "module",
   "main": "dist/index.js",
