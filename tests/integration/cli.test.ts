@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { spawnSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
+import { homedir } from 'os';
+import { resolve, join } from 'path';
+import { readSession, aggregateSession } from '../../src/session';
+import { formatStatusBar } from '../../src/status';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Load .env so ANTHROPIC_API_KEY is available when running via `npm test`
@@ -188,6 +191,103 @@ describe('Compression quality — orders fixture', () => {
     expect(reductionPct).toBeGreaterThan(30);
 
     console.log(`Token savings: ${originalTokens.toLocaleString()} → ${compressedTokens.toLocaleString()} tokens (-${reductionPct}%)`);
+  });
+});
+
+// ─── Hook → session tracking pipeline ───────────────────────────────────────
+
+describe('Hook → session tracking pipeline', () => {
+  const sessionDir = join(homedir(), '.compressmcp');
+
+  it('hook writes a compress event with tokensSaved > 0 and tokensIn > 500', () => {
+    const sessionId = `test-tracking-${Date.now()}`;
+    const sessionFile = join(sessionDir, `${sessionId}.jsonl`);
+    if (existsSync(sessionFile)) unlinkSync(sessionFile);
+
+    try {
+      const hookInput = JSON.stringify({
+        session_id: sessionId,
+        hook_event_name: 'PostToolUse',
+        tool_name: 'mcp__db__query',
+        tool_input: {},
+        tool_response: [{ type: 'text', text: makeLargeJson() }],
+        cwd: '/tmp',
+      });
+
+      const { stdout } = runHook(['--hook'], hookInput);
+      expect(stdout).not.toBe('');
+      expect(existsSync(sessionFile)).toBe(true);
+
+      const events = readSession(sessionId, sessionDir);
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('compress');
+
+      const stats = aggregateSession(events);
+      expect(stats.calls).toBe(1);
+      expect(stats.tokensSaved).toBeGreaterThan(0);
+      expect(stats.tokensIn).toBeGreaterThan(500);
+    } finally {
+      if (existsSync(sessionFile)) unlinkSync(sessionFile);
+    }
+  });
+
+  it('multiple hook invocations accumulate calls and sum tokensSaved', () => {
+    const sessionId = `test-multi-${Date.now()}`;
+    const sessionFile = join(sessionDir, `${sessionId}.jsonl`);
+    if (existsSync(sessionFile)) unlinkSync(sessionFile);
+
+    try {
+      const hookInput = JSON.stringify({
+        session_id: sessionId,
+        hook_event_name: 'PostToolUse',
+        tool_name: 'mcp__db__query',
+        tool_input: {},
+        tool_response: [{ type: 'text', text: makeLargeJson() }],
+        cwd: '/tmp',
+      });
+
+      runHook(['--hook'], hookInput);
+      runHook(['--hook'], hookInput);
+
+      const events = readSession(sessionId, sessionDir);
+      expect(events).toHaveLength(2);
+
+      const stats = aggregateSession(events);
+      expect(stats.calls).toBe(2);
+
+      const firstSaved = aggregateSession([events[0]]).tokensSaved;
+      expect(stats.tokensSaved).toBe(firstSaved * 2);
+    } finally {
+      if (existsSync(sessionFile)) unlinkSync(sessionFile);
+    }
+  });
+
+  it('formatStatusBar shows correct token savings and call count from real hook output', () => {
+    const sessionId = `test-status-${Date.now()}`;
+    const sessionFile = join(sessionDir, `${sessionId}.jsonl`);
+    if (existsSync(sessionFile)) unlinkSync(sessionFile);
+
+    try {
+      const hookInput = JSON.stringify({
+        session_id: sessionId,
+        hook_event_name: 'PostToolUse',
+        tool_name: 'mcp__db__query',
+        tool_input: {},
+        tool_response: [{ type: 'text', text: makeLargeJson() }],
+        cwd: '/tmp',
+      });
+
+      runHook(['--hook'], hookInput);
+
+      const stats = aggregateSession(readSession(sessionId, sessionDir));
+      const bar = formatStatusBar(stats);
+
+      expect(bar).toContain('1 calls');
+      // tokensSaved is formatted as K (e.g. "1K") — verify it's not "-0"
+      expect(bar).not.toContain('-0 tok');
+    } finally {
+      if (existsSync(sessionFile)) unlinkSync(sessionFile);
+    }
   });
 });
 

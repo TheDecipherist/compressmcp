@@ -28,7 +28,7 @@ export function formatBar(filledCount: number, totalWidth: number): string {
   return result;
 }
 
-export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | null): string {
+export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | null, branch?: string | null): string {
   const BAR_WIDTH = 10;
 
   let filledCount = 0;
@@ -54,6 +54,10 @@ export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | nul
 
   if (planUsage) {
     out += ` | ${formatPlanUsage(planUsage)}`;
+  }
+
+  if (branch) {
+    out += ` | ${branch}`;
   }
 
   return out;
