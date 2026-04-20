@@ -29,9 +29,15 @@ describe('detect', () => {
   });
 
   describe('estimateTokens', () => {
-    it('should estimate token count as roughly length/4', () => {
-      const text = 'a'.repeat(400);
-      expect(estimateTokens(text)).toBe(100);
+    it('should return a positive token count for non-empty text', () => {
+      const text = 'The quick brown fox jumps over the lazy dog. '.repeat(20);
+      expect(estimateTokens(text)).toBeGreaterThan(0);
+    });
+
+    it('should return more tokens for longer text', () => {
+      const short = 'hello world';
+      const long = 'hello world '.repeat(50);
+      expect(estimateTokens(long)).toBeGreaterThan(estimateTokens(short));
     });
 
     it('should return 0 for empty string', () => {
@@ -41,7 +47,15 @@ describe('detect', () => {
 
   describe('shouldCompress', () => {
     it('should return true for valid JSON above threshold', () => {
-      const bigJson = JSON.stringify({ data: 'x'.repeat(2500) });
+      // Use realistic varied JSON that tokenizes to many tokens
+      const bigJson = JSON.stringify(
+        Array.from({ length: 200 }, (_, i) => ({
+          transactionId: `tx_${i}`,
+          transactionStatus: 'completed',
+          customerName: `Customer ${i}`,
+          totalAmount: 99.99,
+        }))
+      );
       expect(shouldCompress(bigJson, 500)).toBe(true);
     });
 

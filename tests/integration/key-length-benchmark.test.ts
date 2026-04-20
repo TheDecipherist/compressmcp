@@ -2,6 +2,7 @@ import { describe, it } from 'vitest';
 import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
+import { countTokens } from '@anthropic-ai/tokenizer';
 
 const BINARY = resolve(process.cwd(), 'dist/index.js');
 
@@ -77,8 +78,17 @@ describe('Key length benchmark — savings by key length', () => {
     const results = keyLengths.map(keyLength => {
       const json = JSON.stringify(makeDataset(keyLength));
       const compressedText = runHook(json);
-      const { original, compressed, pct } = parseHeader(compressedText);
-      return { keyLength, original, compressed, pct };
+
+      // Estimated token counts (used by the hook internally: ceil(length / 4))
+      const { original: estOriginal, compressed: estCompressed, pct: estPct } = parseHeader(compressedText);
+
+      // Actual token counts via Anthropic tokenizer
+      const compressedJson = compressedText.split('\n')[2] ?? '';
+      const actOriginal = countTokens(json);
+      const actCompressed = countTokens(compressedJson);
+      const actPct = Math.round((1 - actCompressed / actOriginal) * 100);
+
+      return { keyLength, estOriginal, estCompressed, estPct, actOriginal, actCompressed, actPct };
     });
 
     const pad  = (s: string, n: number) => s.padEnd(n);
@@ -86,16 +96,17 @@ describe('Key length benchmark — savings by key length', () => {
 
     const lines = [
       '',
-      'Key Length Benchmark — Savings by Key Length',
-      '─'.repeat(62),
-      `${pad('Key length', 12)} ${lpad('Original', 10)} ${lpad('Compressed', 12)} ${lpad('Savings', 8)}`,
-      '─'.repeat(62),
+      'Key Length Benchmark — Estimated vs Actual Token Counts',
+      '─'.repeat(90),
+      `${pad('Key length', 12)} ${lpad('Est.orig', 10)} ${lpad('Est.compr', 11)} ${lpad('Est.save', 9)} │ ${lpad('Act.orig', 10)} ${lpad('Act.compr', 11)} ${lpad('Act.save', 9)}`,
+      '─'.repeat(90),
       ...results.map(r =>
-        `${pad(`${r.keyLength} chars`, 12)} ${lpad(r.original.toLocaleString() + ' tok', 10)} ${lpad(r.compressed.toLocaleString() + ' tok', 12)} ${lpad('-' + r.pct + '%', 8)}`
+        `${pad(`${r.keyLength} chars`, 12)} ${lpad(r.estOriginal.toLocaleString(), 10)} ${lpad(r.estCompressed.toLocaleString(), 11)} ${lpad('-' + r.estPct + '%', 9)} │ ${lpad(r.actOriginal.toLocaleString(), 10)} ${lpad(r.actCompressed.toLocaleString(), 11)} ${lpad('-' + r.actPct + '%', 9)}`
       ),
-      '─'.repeat(62),
+      '─'.repeat(90),
       '',
-      'Longer keys → more tokens saved per abbreviation → higher % savings.',
+      'Est. = ceil(length/4) approximation used by the hook',
+      'Act. = Anthropic tokenizer (claude tokenizer)',
       '',
     ];
 

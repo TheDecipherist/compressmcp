@@ -1,4 +1,5 @@
 import { compress as terseCompress, expand as terseExpand, type TersePayload, type CompressOptions } from 'tersejson';
+import { countTokens } from '@anthropic-ai/tokenizer';
 
 export interface CompressResult {
   compressed: unknown;
@@ -9,7 +10,7 @@ export interface CompressResult {
 
 export function compress(jsonText: string, options?: CompressOptions): CompressResult {
   const parsed = JSON.parse(jsonText);
-  const originalTokens = Math.ceil(jsonText.length / 4);
+  const originalTokens = countTokens(jsonText);
 
   // TerseJSON requires an array — wrap plain objects, unwrap after
   const isArray = Array.isArray(parsed);
@@ -23,7 +24,7 @@ export function compress(jsonText: string, options?: CompressOptions): CompressR
 
   const compressedData = isArray ? payload.d : (payload.d as unknown[])[0];
   const compressedJson = JSON.stringify(compressedData);
-  const compressedTokens = Math.ceil(compressedJson.length / 4);
+  const compressedTokens = countTokens(compressedJson);
 
   return {
     compressed: compressedData,

@@ -1,3 +1,5 @@
+import { countTokens } from '@anthropic-ai/tokenizer';
+
 const DEFAULT_MIN_TOKENS = 500;
 
 export function isValidJson(text: string): boolean {
@@ -14,7 +16,7 @@ export function isValidJson(text: string): boolean {
 
 export function estimateTokens(text: string): number {
   if (!text) return 0;
-  return Math.ceil(text.length / 4);
+  return countTokens(text);
 }
 
 export function shouldCompress(text: string, minTokens = DEFAULT_MIN_TOKENS): boolean {
