@@ -113,7 +113,7 @@ The ~60ms baseline is process startup — unavoidable for a CLI hook. Break-even
 
 compressmcp includes a Claude Code status bar that shows real-time compression stats for your active session.
 
-![compressmcp status bar](./compressmcp.png)
+![compressmcp status bar](https://raw.githubusercontent.com/TheDecipherist/compressmcp/main/compressmcp.png)
 
 The bar displays left to right:
 
