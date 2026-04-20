@@ -5,7 +5,7 @@ import { main as runPreHook } from './hooks/pre-tool-use.js';
 import { runServer } from './server/index.js';
 import { install, uninstall, check } from './install.js';
 import { main as runTracker } from './tracker.js';
-import { readLatestSession, readSession, aggregateSession } from './session.js';
+import { readLatestSession, readSession, aggregateSession, readSessionMarker, filterSessionEvents, resetSessionMarker } from './session.js';
 import { formatStatusBar } from './status.js';
 import { fetchPlanUsage } from './usage.js';
 
@@ -36,6 +36,12 @@ switch (command) {
     const sessionEvents = sessionId ? readSession(sessionId) : [];
     const events = sessionEvents.length > 0 ? sessionEvents : readLatestSession();
     const compression = aggregateSession(events);
+
+    // Compute per-session stats using the session marker
+    const marker = readSessionMarker();
+    const sessionOnlyStats = marker
+      ? aggregateSession(filterSessionEvents(events, marker.startTs))
+      : null;
 
     // Build SessionStats: use live context window data if available
     const ctxWin = live.context_window as Record<string, unknown> | undefined;
@@ -74,7 +80,17 @@ switch (command) {
       branch = execSync('git branch --show-current', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
     } catch { /* not a git repo or git unavailable */ }
 
-    process.stdout.write(formatStatusBar(liveStats, planUsage, branch));
+    process.stdout.write(formatStatusBar(liveStats, planUsage, branch, sessionOnlyStats));
+    break;
+  }
+  case '--reset-session': {
+    const existing = readSessionMarker();
+    resetSessionMarker(
+      existing?.sessionId ?? '',
+      Date.now(),
+      existing?.lastTranscriptSize ?? 0,
+    );
+    console.log('Session counter reset.');
     break;
   }
   case '--server':
@@ -99,7 +115,8 @@ switch (command) {
     console.log('  compressmcp --hook     — run as PostToolUse hook (stdin → stdout)');
     console.log('  compressmcp --pre-hook — run as PreToolUse hook (stdin → stdout)');
     console.log('  compressmcp --track    — run as PostToolUse tracker hook (stdin → silent)');
-    console.log('  compressmcp --status   — print status bar string to stdout');
+    console.log('  compressmcp --status         — print status bar string to stdout');
+  console.log('  compressmcp --reset-session  — reset the current-session token counter');
     console.log('  compressmcp --server   — run as MCP server (stdio transport)');
     break;
 }

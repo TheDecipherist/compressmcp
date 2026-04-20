@@ -169,12 +169,12 @@ describe('formatPlanUsage', () => {
       expect(plain).toMatch(/^5h \[.+\s+\d+%\] 7d \[.+\s+\d+%\]$/);
     });
 
-    it('bars are exactly 10 characters wide', () => {
+    it('bars are exactly 4 characters wide', () => {
       const plain = stripAnsi(formatPlanUsage(usage));
       const fiveMatch = plain.match(/5h \[([█░]+)/);
       const sevenMatch = plain.match(/7d \[([█░]+)/);
-      expect(fiveMatch?.[1]).toHaveLength(10);
-      expect(sevenMatch?.[1]).toHaveLength(10);
+      expect(fiveMatch?.[1]).toHaveLength(4);
+      expect(sevenMatch?.[1]).toHaveLength(4);
     });
 
     it('percentage is rounded to nearest integer', () => {
@@ -187,19 +187,21 @@ describe('formatPlanUsage', () => {
 
   describe('gradient coloring', () => {
     it('blocks at 0-49% position are green', () => {
-      // 10% utilization — 1 block filled, at position 0 (green zone)
-      const u = { fiveHour: { utilization: 10, resetsAt: '' }, sevenDay: { utilization: 0, resetsAt: '' } };
+      // 25% utilization — 1 block filled, position 0 = 0% of bar (green zone)
+      const u = { fiveHour: { utilization: 25, resetsAt: '' }, sevenDay: { utilization: 0, resetsAt: '' } };
       expect(formatPlanUsage(u)).toContain('\x1b[32m\u2588');
     });
 
     it('blocks at 50-79% position are yellow', () => {
-      const u = { fiveHour: { utilization: 60, resetsAt: '' }, sevenDay: { utilization: 0, resetsAt: '' } };
+      // 75% utilization — 3 blocks filled; position 2 = 50% of bar (yellow zone)
+      const u = { fiveHour: { utilization: 75, resetsAt: '' }, sevenDay: { utilization: 0, resetsAt: '' } };
       expect(formatPlanUsage(u)).toContain('\x1b[33m\u2588');
     });
 
-    it('blocks at 80-100% position are red', () => {
+    it('with 4-char bars the highest position (75%) is in yellow zone, not red', () => {
+      // With BAR_WIDTH=4, position 3 = 75% → yellow; no position reaches 80% (red)
       const u = { fiveHour: { utilization: 100, resetsAt: '' }, sevenDay: { utilization: 0, resetsAt: '' } };
-      expect(formatPlanUsage(u)).toContain('\x1b[31m\u2588');
+      expect(formatPlanUsage(u)).not.toContain('\x1b[31m\u2588');
     });
 
     it('unfilled blocks are dim gray', () => {
@@ -216,10 +218,10 @@ describe('formatPlanUsage', () => {
       expect(raw).not.toContain('\x1b[33m\u2588');
     });
 
-    it('100% utilization produces all-red bar', () => {
+    it('100% utilization fills all 8 blocks (4 per bar × 2 bars)', () => {
       const u = { fiveHour: { utilization: 100, resetsAt: '' }, sevenDay: { utilization: 100, resetsAt: '' } };
       const plain = stripAnsi(formatPlanUsage(u));
-      expect([...plain.matchAll(/█/g)].length).toBe(20); // 10 per bar × 2 bars
+      expect([...plain.matchAll(/█/g)].length).toBe(8); // 4 per bar × 2 bars
     });
 
     it('utilization > 100 is capped at 100', () => {
