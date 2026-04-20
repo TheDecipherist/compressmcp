@@ -434,3 +434,53 @@ describe('formatStatusBar — model display', () => {
     expect(modelPos).toBeLessThan(statsStart);
   });
 });
+
+const ZERO_STATS: SessionStats = { calls: 0, tokensSaved: 0, tokensIn: 0, context: null };
+
+describe('formatStatusBar — git branch display', () => {
+  const planUsage = {
+    fiveHour: { utilization: 10, resetsAt: '' },
+    sevenDay: { utilization: 20, resetsAt: '' },
+  };
+
+  describe('branch appended at far right', () => {
+    it('appends " | <branch>" at the end when branch is provided', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS, null, 'feat/my-branch'));
+      expect(plain).toMatch(/\| feat\/my-branch$/);
+    });
+
+    it('branch appears after plan usage when planUsage is present', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS, planUsage, 'main'));
+      const planIdx = plain.indexOf('7d [');
+      const branchIdx = plain.lastIndexOf('| main');
+      expect(branchIdx).toBeGreaterThan(planIdx);
+      expect(plain).toMatch(/\| main$/);
+    });
+
+    it('branch appears at the end even when planUsage is null', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS, null, 'fix/bug-123'));
+      expect(plain).toMatch(/\| fix\/bug-123$/);
+      expect(plain).not.toContain('5h');
+    });
+  });
+
+  describe('omit when branch unavailable', () => {
+    it('does not append branch section when branch is null', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS, null, null));
+      expect(plain).not.toMatch(/\| [a-z]/);
+    });
+
+    it('does not append branch section when branch is an empty string', () => {
+      const plain = stripAnsi(formatStatusBar(ZERO_STATS, null, ''));
+      // empty string is falsy — branch section should be omitted
+      const withoutBranch = stripAnsi(formatStatusBar(ZERO_STATS, null));
+      expect(plain).toBe(withoutBranch);
+    });
+
+    it('output without branch is identical to current behaviour (no regression)', () => {
+      const withUndefined = stripAnsi(formatStatusBar(ZERO_STATS, planUsage));
+      const withNull = stripAnsi(formatStatusBar(ZERO_STATS, planUsage, null));
+      expect(withNull).toBe(withUndefined);
+    });
+  });
+});
