@@ -109,6 +109,37 @@ The ~60ms baseline is process startup — unavoidable for a CLI hook. Break-even
 
 ---
 
+## Live status bar
+
+compressmcp includes a Claude Code status bar that shows real-time compression stats for your active session.
+
+![compressmcp status bar](./compressmcp.png)
+
+The bar displays left to right:
+
+| Section | Example | Description |
+|---|---|---|
+| Context bar | `22% \| 43K/200K` | How full Claude's context window is (colour: green → yellow → red) |
+| Model | `sonnet` | Active model (opus / sonnet / haiku) |
+| Token savings | `-4.7M tok · 40%` | Tokens removed this session + compression efficiency percentage |
+| Call count | `907 calls` | Number of compressed responses so far |
+| Plan usage | `5h [9%] 7d [17%]` | Claude plan rate-limit utilisation (5-hour and 7-day windows) |
+| Branch | `main` | Current git branch |
+
+### Enable the status bar
+
+Add the `statusLine` command to `~/.claude/settings.json` (done automatically by `compressmcp install`):
+
+```json
+{
+  "statusLine": "compressmcp --status"
+}
+```
+
+The command reads live context and rate-limit data piped in by Claude Code, combines it with compression stats from the current session's JSONL log, and writes the formatted bar to stdout.
+
+---
+
 ## Safety
 
 Compression is strictly lossless. The test suite includes:
@@ -122,7 +153,7 @@ Compression is strictly lossless. The test suite includes:
 npm test
 ```
 
-110 tests across unit, safety, integration, and benchmark suites.
+262 tests across unit, safety, integration, and benchmark suites.
 
 ---
 
