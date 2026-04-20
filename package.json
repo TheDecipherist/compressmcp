@@ -24,6 +24,10 @@
     "lossless",
     "ai"
   ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "license": "MIT",
   "dependencies": {
     "tersejson": "*"
