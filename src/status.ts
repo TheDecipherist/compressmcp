@@ -28,7 +28,7 @@ export function formatBar(filledCount: number, totalWidth: number): string {
   return result;
 }
 
-export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | null, branch?: string | null): string {
+export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | null, branch?: string | null, sessionStats?: SessionStats | null): string {
   const BAR_WIDTH = 10;
 
   let filledCount = 0;
@@ -49,9 +49,19 @@ export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | nul
 
   const bar = formatBar(filledCount, BAR_WIDTH);
   const pctStr = pct.toString().padStart(3);
-  const savedStr = fmtTokens(stats.tokensSaved);
-  const comprPct = stats.tokensIn > 0 ? ` \u00b7 ${Math.round((stats.tokensSaved / stats.tokensIn) * 100)}%` : '';
-  let out = `[${bar}${pctStr}% | ${usedStr}/${windowStr}] ${model} · \u26a1 -${savedStr} tok${comprPct} \u00b7 ${stats.calls} calls`;
+
+  // Use session stats as primary if available, fall back to all-time
+  const primary = sessionStats ?? stats;
+  const savedStr = fmtTokens(primary.tokensSaved);
+  const comprPct = primary.tokensIn > 0 ? ` \u00b7 ${Math.round((primary.tokensSaved / primary.tokensIn) * 100)}%` : '';
+  let out = `[${bar}${pctStr}% | ${usedStr}/${windowStr}] ${model} · \u26a1 -${savedStr} tok${comprPct} \u00b7 ${primary.calls} calls`;
+
+  // Append all-time stats in parens when session stats are shown and all-time has data
+  if (sessionStats && stats.calls > 0) {
+    const allSaved = fmtTokens(stats.tokensSaved);
+    const allPct = stats.tokensIn > 0 ? ` \u00b7 ${Math.round((stats.tokensSaved / stats.tokensIn) * 100)}%` : '';
+    out += `  (all: -${allSaved}${allPct} \u00b7 ${stats.calls})`;
+  }
 
   if (planUsage) {
     out += ` | ${formatPlanUsage(planUsage)}`;
@@ -65,9 +75,10 @@ export function formatStatusBar(stats: SessionStats, planUsage?: PlanUsage | nul
 }
 
 export function formatPlanUsage(planUsage: PlanUsage): string {
+  const BAR_WIDTH = 4;
   const fivePct = Math.round(Math.min(100, planUsage.fiveHour.utilization));
   const sevenPct = Math.round(Math.min(100, planUsage.sevenDay.utilization));
-  const fiveFilled = Math.round((fivePct / 100) * 10);
-  const sevenFilled = Math.round((sevenPct / 100) * 10);
-  return `5h [${formatBar(fiveFilled, 10)}${fivePct.toString().padStart(3)}%] 7d [${formatBar(sevenFilled, 10)}${sevenPct.toString().padStart(3)}%]`;
+  const fiveFilled = Math.round((fivePct / 100) * BAR_WIDTH);
+  const sevenFilled = Math.round((sevenPct / 100) * BAR_WIDTH);
+  return `5h [${formatBar(fiveFilled, BAR_WIDTH)}${fivePct.toString().padStart(3)}%] 7d [${formatBar(sevenFilled, BAR_WIDTH)}${sevenPct.toString().padStart(3)}%]`;
 }

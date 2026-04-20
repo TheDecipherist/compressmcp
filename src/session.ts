@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, appendFileSync, readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, appendFileSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { getContextWindowSize } from './context.js';
@@ -35,6 +35,39 @@ export interface SessionStats {
 }
 
 export const DEFAULT_SESSION_DIR = join(homedir(), '.compressmcp');
+
+export interface SessionMarker {
+  sessionId: string;
+  startTs: number;
+  lastTranscriptSize: number;
+}
+
+const SESSION_MARKER_FILE = 'session-current.json';
+
+export function readSessionMarker(baseDir?: string): SessionMarker | null {
+  const dir = baseDir ?? DEFAULT_SESSION_DIR;
+  const filePath = join(dir, SESSION_MARKER_FILE);
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8')) as SessionMarker;
+  } catch {
+    return null;
+  }
+}
+
+export function writeSessionMarker(marker: SessionMarker, baseDir?: string): void {
+  const dir = baseDir ?? DEFAULT_SESSION_DIR;
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, SESSION_MARKER_FILE), JSON.stringify(marker), 'utf8');
+}
+
+export function resetSessionMarker(sessionId: string, startTs: number, lastTranscriptSize: number, baseDir?: string): void {
+  writeSessionMarker({ sessionId, startTs, lastTranscriptSize }, baseDir);
+}
+
+export function filterSessionEvents(events: SessionEvent[], startTs: number): SessionEvent[] {
+  return events.filter(e => e.ts >= startTs);
+}
 
 export function appendEvent(sessionId: string, event: SessionEvent, baseDir?: string): void {
   const dir = baseDir ?? DEFAULT_SESSION_DIR;

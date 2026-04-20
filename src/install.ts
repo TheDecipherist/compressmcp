@@ -43,12 +43,21 @@ export function install(): void {
   }
 
   // PostToolUse hook — context tracker
-  const trackExists = settings.hooks.PostToolUse.some(h => h.matcher === TRACK_MATCHER);
-  if (!trackExists) {
-    settings.hooks.PostToolUse.push({
-      matcher: TRACK_MATCHER,
-      hooks: [{ type: 'command', command: 'compressmcp --track' }],
-    });
+  // Check for the command specifically: an existing .* entry (e.g. from another tool) won't
+  // contain compressmcp --track, so we must not treat its presence as "already installed".
+  const trackCommandExists = settings.hooks.PostToolUse.some(h =>
+    h.hooks.some(hk => hk.command === 'compressmcp --track'),
+  );
+  if (!trackCommandExists) {
+    const wildcardEntry = settings.hooks.PostToolUse.find(h => h.matcher === TRACK_MATCHER);
+    if (wildcardEntry) {
+      wildcardEntry.hooks.push({ type: 'command', command: 'compressmcp --track' });
+    } else {
+      settings.hooks.PostToolUse.push({
+        matcher: TRACK_MATCHER,
+        hooks: [{ type: 'command', command: 'compressmcp --track' }],
+      });
+    }
   }
 
   // PreToolUse hook
@@ -84,9 +93,16 @@ export function uninstall(): void {
   const settings = loadSettings();
 
   if (settings.hooks?.PostToolUse) {
-    settings.hooks.PostToolUse = settings.hooks.PostToolUse.filter(
-      h => h.matcher !== HOOK_MATCHER && h.matcher !== TRACK_MATCHER,
-    );
+    // Remove specific compressmcp commands from any entry that contains them;
+    // never drop an entire entry that belongs to another tool.
+    settings.hooks.PostToolUse = settings.hooks.PostToolUse
+      .map(h => ({
+        ...h,
+        hooks: h.hooks.filter(
+          hk => hk.command !== 'compressmcp --hook' && hk.command !== 'compressmcp --track',
+        ),
+      }))
+      .filter(h => h.hooks.length > 0);
   }
   if (settings.hooks?.PreToolUse) {
     settings.hooks.PreToolUse = settings.hooks.PreToolUse.filter(h => h.matcher !== 'Bash');
@@ -104,8 +120,12 @@ export function uninstall(): void {
 
 export function check(): void {
   const settings = loadSettings();
-  const postHook = settings.hooks?.PostToolUse?.some(h => h.matcher === HOOK_MATCHER);
-  const trackHook = settings.hooks?.PostToolUse?.some(h => h.matcher === TRACK_MATCHER);
+  const postHook = settings.hooks?.PostToolUse?.some(h =>
+    h.hooks.some(hk => hk.command === 'compressmcp --hook'),
+  );
+  const trackHook = settings.hooks?.PostToolUse?.some(h =>
+    h.hooks.some(hk => hk.command === 'compressmcp --track'),
+  );
   const preHook = settings.hooks?.PreToolUse?.some(h => h.matcher === 'Bash');
   const server = !!settings.mcpServers?.['compressmcp'];
   const statusLine = settings.statusLine?.command === 'compressmcp --status';
