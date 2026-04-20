@@ -107,7 +107,7 @@ Hook processing time measured over 10 runs per dataset. Times include Node.js pr
 
 \* Based on Claude Haiku input throughput (~60k tokens/sec). Positive Net = compression saves more time than it costs.
 
-The ~60ms baseline is process startup, unavoidable for a CLI hook. Break-even is around 3,600 tokens saved. Any response large enough to compress meaningfully (~15KB+) comes out ahead.
+The ~60ms baseline is process startup — a one-time cost per tool call. The real payoff isn't speed: it's context space. Every token compressed is a token freed from Claude's context window, leaving more room for code, conversation, and reasoning on every subsequent turn in the session.
 
 ---
 
