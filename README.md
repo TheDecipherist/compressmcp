@@ -1,5 +1,7 @@
 # compressmcp
 
+[![npm](https://img.shields.io/npm/v/compressmcp)](https://www.npmjs.com/package/compressmcp) [![GitHub](https://img.shields.io/badge/github-TheDecipherist%2Fcompressmcp-blue)](https://github.com/TheDecipherist/compressmcp)
+
 Lossless JSON compression for Claude Code. Intercepts MCP tool responses and compresses large JSON payloads before they enter Claude's context window — cutting token usage by 40% on average with zero data loss.
 
 ---
